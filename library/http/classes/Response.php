@@ -23,6 +23,41 @@ use \pillr\library\http\Message         as  Message;
  */
 class Response extends Message implements ResponseInterface
 {
+
+    /**
+     * @var string
+     */
+    private $protocol_version, $status_code, $reason_phrase, $message_body;
+
+    /**
+     * @var array
+     */
+    private $headers;
+
+    private $status_codes = array(100, 101, 200, 201, 202, 203,
+                                  204, 205, 206, 300, 301, 302,
+                                  303, 304, 305, 307, 400, 401,
+                                  402, 403, 404, 405, 406, 407,
+                                  408, 409, 410, 411, 412, 413,
+                                  414, 415, 416, 417, 500, 501,
+                                  502, 503, 504, 505);
+
+    private $reason_phrases = array('Continue', 'Switching Protocols', 'OK', 'Created', 'Accepted', 'Non-Authoritative Information',
+                                    'No Content', 'Reset Content', 'Partial Content', 'Multiple Choices', 'Moved Permanently', 'Found',
+                                    'See Other', 'Not Modified', 'Use Proxy', 'Temporary Redirect', 'Bad Request', 'Unauthorized',
+                                    'Payment Required', 'Forbidden', 'Not Found', 'Method Not Allowed', 'Not Acceptable', 'Proxy Authentication Required',
+                                    'Request Time-out', 'Conflict', 'Gone', 'Length Required', 'Preondition Failed', 'Request Entity Too Large',
+                                    'Request-URI Too Large', 'Unsupported Media Type', 'Requested range not satisfiable', 'Expectation Failed', 'Internal Server Error', 'Not Implemented',
+                                    'Bad Gateway', 'Service Unvailable', 'Gateway Time-out', 'HTTP Version not supported');
+
+    public function __construct($_protocol_version, $_status_code, $_reason_phrase, $_headers, $_message_body){
+
+      $this->protocol_version   = $_protocol_version;
+      $this->status_code  = $_status_code;
+      $this->reason_phrase = $_reason_phrase;
+      $this->headers = $_headers;
+      $this->message_body = $_message_body;
+    }
     /**
      * Gets the response status code.
      *
@@ -33,7 +68,7 @@ class Response extends Message implements ResponseInterface
      */
     public function getStatusCode()
     {
-
+      return (int)$this->status_code;
     }
 
     /**
@@ -58,7 +93,22 @@ class Response extends Message implements ResponseInterface
      */
     public function withStatus($code, $reasonPhrase = '')
     {
+      var $i = -1;
+      foreach ($status_codes as &$codes) {
+          $i++;
+          if($codes == $code){
+            $this->status_code = $code;
+            if($reasonPhrase == ''){
+              $this->reason_phrase = $reason_phrases[$i];
+            }else{
+              $this->reason_phrase = $reasonPhrase;
+            }
 
+            return $this;
+          }
+      }
+
+      throw new \InvalidArgumentException('Input should be a valid http status code');
     }
 
     /**
@@ -76,6 +126,6 @@ class Response extends Message implements ResponseInterface
      */
     public function getReasonPhrase()
     {
-
+      return $this->reason_phrase;
     }
 }

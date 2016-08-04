@@ -7,6 +7,8 @@ use \Psr\Http\Message\RequestInterface  as  RequestInterface;
 use \Psr\Http\Message\UriInterface      as  UriInterface;
 
 use \pillr\library\http\Message         as  Message;
+
+use \pillr\library\http\Uri      as Uri;
 /**
  * Representation of an outgoing, client-side request.
  *
@@ -26,9 +28,48 @@ use \pillr\library\http\Message         as  Message;
  * be implemented such that they retain the internal state of the current
  * message and return an instance that contains the changed state.
  */
-class Request extends Message implements RequestInterface
-{
+class Request extends Message implements RequestInterface{
 
+    /**
+     * @var string
+     */
+      private $protocol_version, $http_method, $message_body;
+
+    /**
+     * @var Uri
+     */
+    private $uri;
+
+    /**
+     * @var array
+     */
+    private $headers;
+
+    /**
+     * @var string array
+     */
+    private $methods_list = array("GET", "HEAD", "POST", "PUT", "DELETE", "CONNECT", "OPTIONS", "TRACE");
+
+    public function __construct($_protocol_version, $_http_method, $_uri, $_headers, $_message_body){
+
+      if (!is_string($_protocol_version)) {
+        throw new \InvalidArgumentException('First Argument must be a valid Protocol Version');
+      }
+
+      if (!is_string($_http_method)) {
+        throw new \InvalidArgumentException('Second Argument must be a valid HTTP Method');
+      }
+
+      if (!is_string($_message_body)) {
+        throw new \InvalidArgumentException('Last Argument must be a string');
+      }
+
+      $this->protocol_version   = $_protocol_version;
+      $this->http_method  = $_http_method;
+      $this->uri = $_uri;
+      $this->headers = $_headers;
+      $this->message_body = $_message_body;
+    }
 
     /**
      * Retrieves the message's request target.
@@ -48,7 +89,7 @@ class Request extends Message implements RequestInterface
      */
     public function getRequestTarget()
     {
-
+      return $this->uri->__toString();
     }
 
     /**
@@ -70,7 +111,8 @@ class Request extends Message implements RequestInterface
      */
     public function withRequestTarget($requestTarget)
     {
-
+      $this->uri = new Uri($requestTarget);
+      return $this;
     }
 
     /**
@@ -80,7 +122,7 @@ class Request extends Message implements RequestInterface
      */
     public function getMethod()
     {
-
+      return $this->http_method;
     }
 
     /**
@@ -100,6 +142,14 @@ class Request extends Message implements RequestInterface
      */
     public function withMethod($method)
     {
+      foreach ($methods_list as &$methods) {
+          if($methods == $method){
+            $this->method = $method;
+            return $this;
+          }
+      }
+
+      throw new \InvalidArgumentException('Input should be a valid http method');
 
     }
 
@@ -114,7 +164,7 @@ class Request extends Message implements RequestInterface
      */
     public function getUri()
     {
-
+      return $this->uri;
     }
 
     /**
@@ -149,7 +199,15 @@ class Request extends Message implements RequestInterface
      */
     public function withUri(UriInterface $uri, $preserveHost = false)
     {
-
+      if($preserveHost == false){
+        $this->uri = $uri;
+      }else{
+        if($this->uri->getHost() != ''){
+          $uri->withHost($this->uri->getHost());
+        }
+        $this->uri = $uri;
+      }
+      return $this;
     }
 
 

@@ -24,7 +24,101 @@ use \Psr\Http\Message\UriInterface as UriInterface;
  */
 class Uri implements UriInterface
 {
-    
+
+    /**
+    * @var string
+    */
+    private $uri_string, $scheme, $authority, $user_info, $host, $port, $port_string, $path, $query, $fragment;
+
+    /**
+    * @var string array
+    */
+    private $scheme_list = array("http", "https");
+
+    public function __construct($_uri_string){
+
+      if (!is_string($_uri_string)) {
+        throw new \InvalidArgumentException($_uri_string);
+      }
+
+      if (!filter_var($_uri_string, FILTER_VALIDATE_URL)){
+        throw new \InvalidArgumentException('Input must be a valid URL');
+      }
+
+      $this->uri_string   = $_uri_string;
+
+      if(parse_url($this->uri_string, PHP_URL_SCHEME) == NULL){
+        $this->scheme = '';
+      }else{
+        $this->scheme = parse_url($this->uri_string, PHP_URL_SCHEME);
+      }
+
+      if(parse_url($this->uri_string, PHP_URL_USER) == NULL){
+        $this->user_info = '';
+      }else{
+        $this->user_info = parse_url($this->uri_string, PHP_URL_PHP_URL_USER);
+
+        if(parse_url($this->uri_string, PHP_URL_PASS) != NULL){
+          $this->user_info = $this->user_info . ':' . parse_url($this->uri_string, PHP_URL_PASS);
+        }
+      }
+
+      if(parse_url($this->uri_string, PHP_URL_HOST) == NULL){
+        $this->host = '';
+      }else{
+        $this->host = parse_url($this->uri_string, PHP_URL_HOST);
+      }
+
+      if(parse_url($this->uri_string, PHP_URL_PORT) == NULL){
+        $this->port_string = '';
+      }else{
+        $this->port_string = (string)parse_url($this->uri_string, PHP_URL_HOST);
+      }
+
+      if((parse_url($this->uri_string, PHP_URL_PORT) != NULL)&&(parse_url($this->uri_string, PHP_URL_PORT) != getservbyname($this->scheme,'tcp'))){
+        $this->port = parse_url($this->uri_string, PHP_URL_PORT);
+      }else{
+        $this->port = NULL;
+      }
+
+      $this->makeAuthority();
+
+      if(parse_url($this->uri_string, PHP_URL_PATH) == NULL){
+        $this->path = '';
+      }else{
+        $this->path = parse_url($this->uri_string, PHP_URL_PATH);
+      }
+
+      if(parse_url($this->uri_string, PHP_URL_QUERY) == NULL){
+        $this->query = '';
+      }else{
+        $this->query = parse_url($this->uri_string, PHP_URL_QUERY);
+      }
+
+      if(parse_url($this->uri_string, PHP_URL_FRAGMENT) == NULL){
+        $this->fragment = '';
+      }else{
+        $this->fragment = parse_url($this->uri_string, PHP_URL_FRAGMENT);
+      }
+
+    }
+
+    public function makeAuthority()
+    {
+      $this->authority = $this->user_info;
+
+      if($this->host != ''){
+        if($this->authority != ''){
+          $this->authority = $this->authority . '@';
+        }
+        $this->authority = $this->authority . $this->host;
+
+        if($this->port != NULL){
+          $this->authority = $this->authority . ':' . (string)$this->port;
+        }
+      }
+    }
+
     /**
      * Retrieve the scheme component of the URI.
      *
@@ -41,7 +135,7 @@ class Uri implements UriInterface
      */
     public function getScheme()
     {
-
+      return $this->scheme;
     }
 
     /**
@@ -64,7 +158,7 @@ class Uri implements UriInterface
      */
     public function getAuthority()
     {
-
+      return $this->authority;
     }
 
     /**
@@ -84,7 +178,7 @@ class Uri implements UriInterface
      */
     public function getUserInfo()
     {
-
+      return $this->user_info;
     }
 
     /**
@@ -100,7 +194,7 @@ class Uri implements UriInterface
      */
     public function getHost()
     {
-
+      return $this->host;
     }
 
     /**
@@ -120,7 +214,7 @@ class Uri implements UriInterface
      */
     public function getPort()
     {
-
+      return $this->port;
     }
 
     /**
@@ -150,7 +244,7 @@ class Uri implements UriInterface
      */
     public function getPath()
     {
-
+      return $this->path;
     }
 
     /**
@@ -175,7 +269,7 @@ class Uri implements UriInterface
      */
     public function getQuery()
     {
-
+      return $this->query;
     }
 
     /**
@@ -196,7 +290,7 @@ class Uri implements UriInterface
      */
     public function getFragment()
     {
-
+      return $this->fragment;
     }
 
     /**
@@ -218,6 +312,19 @@ class Uri implements UriInterface
     public function withScheme($scheme)
     {
 
+      if(!is_string($scheme)){
+        throw new \InvalidArgumentException('Input must be a string');
+      }
+
+      foreach ($scheme_list as &$schemes) {
+          if($schemes == $scheme){
+            $this->scheme = $scheme;
+            return $this;
+          }
+      }
+
+      throw new \InvalidArgumentException('Input is not a supported scheme.');
+
     }
 
     /**
@@ -234,9 +341,28 @@ class Uri implements UriInterface
      * @param null|string $password The password associated with $user.
      * @return self A new instance with the specified user information.
      */
-    public function withUserInfo($user, $password = null)
+    public function withUserInfo($user, $password = '')
     {
 
+      if(!is_string($user)){
+        throw new \InvalidArgumentException('First argument must be a string');
+      }
+
+      if(!is_string($password)){
+        throw new \InvalidArgumentException('Input must be a string');
+      }
+
+      $this->user = $user;
+      $this->password = $password;
+      $this->user_info = $this->user;
+
+      if(($this->user != '')&&($this->password != '')){
+        $this->user_info = $user . ':' . $password;
+      }
+
+      $this->makeAuthority();
+
+      return $this;
     }
 
     /**
@@ -253,7 +379,13 @@ class Uri implements UriInterface
      */
     public function withHost($host)
     {
+      if(!is_string($host)){
+        throw new \InvalidArgumentException('Input must be a string');
+      }
 
+      $this->host = $host;
+      $this->makeAuthority();
+      return $this;
     }
 
     /**
@@ -275,7 +407,18 @@ class Uri implements UriInterface
      */
     public function withPort($port)
     {
+      if((!is_int($port))||($port > 1023)&&($port != NULL)){
+        throw new \InvalidArgumentException('Input must be a valid port number');
+      }
 
+      $this->port = $port;
+      if($port == NULL){
+        $this->port_string = '';
+      }else{
+        $this->port_string = (string)$port;
+      }
+      $this->makeAuthority();
+      return $this;
     }
 
     /**
@@ -302,7 +445,19 @@ class Uri implements UriInterface
      */
     public function withPath($path)
     {
+      if(!is_string($path)){
+        throw new \InvalidArgumentException('Input must be a string');
+      }
 
+      if($path == ''){
+        $this->path = '';
+      }else if($path[0] != '\\'){
+        $this->path = '\\' . $path;
+      }else{
+        $this->path = $path;
+      }
+
+      return $this;
     }
 
     /**
@@ -322,7 +477,12 @@ class Uri implements UriInterface
      */
     public function withQuery($query)
     {
+      if(!is_string($query)){
+        throw new \InvalidArgumentException('Input must be a string');
+      }
 
+      $this->query = $query;
+      return $this;
     }
 
     /**
@@ -341,7 +501,12 @@ class Uri implements UriInterface
      */
     public function withFragment($fragment)
     {
+      if(!is_string($fragment)){
+        throw new \InvalidArgumentException('Input must be a string');
+      }
 
+      $this->query = $fragment;
+      return $this;
     }
 
     /**
@@ -369,7 +534,32 @@ class Uri implements UriInterface
      */
     public function __toString()
     {
-        
+
+      $this->uri_string =  '';
+
+      if($this->scheme != ''){
+        $this->uri_string = $this->scheme . '://';
+      }
+
+      if($this->authority != ''){
+        $this->uri_string = $this->uri_string . $this->authority;
+      }
+
+      if($this->path == ''){
+        $this->uri_string = $this->uri_string . '\\';
+      }else{
+        $this->uri_string = $this->uri_string . $this->path;
+      }
+
+      if($this->query != ''){
+        $this->uri_string = $this->uri_string . '?' . $this->query;
+      }
+
+      if($this->fragment != ''){
+        $this->uri_string = $this->uri_string . '#' . $this->fragment;
+      }
+
+      return $this->uri_string;
     }
 
 }
